@@ -1,49 +1,79 @@
-int calibrationTime = 15;        
-unsigned long lowIn;         
-unsigned long pause = 5000;  
+/*
+  Motion_Sensor.ino
+  -----------------
+  Detects motion using a PIR sensor and signals a connected system to start recording.
+  Includes a cooldown timer to prevent repeated triggers and an LED for visual feedback.
+  Author: Bharath Gowda
+*/
+// Duration for sensor calibration (in seconds)
+int calibrationTime = 15;
+
+// Time when PIR sensor last detected low signal
+unsigned long lowIn;
+
+// Delay before considering the motion has stopped (in ms)
+unsigned long pause = 5000;
+
+// Control variables for PIR sensor behavior
 boolean lockLow = true;
-boolean takeLowTime;  
-int pirPin = 13;    
-int ledPin = 31;
-unsigned long cooldownPeriod = 10 * 60 * 1000;  
+boolean takeLowTime;
+
+// Pin configuration
+int pirPin = 13;         // PIR motion sensor output connected to digital pin 13
+int ledPin = 31;         // Optional LED indicator connected to digital pin 31
+
+// Cooldown period after motion is detected to avoid repeated triggers (in ms)
+unsigned long cooldownPeriod = 10 * 60 * 1000;  // 10 minutes
 unsigned long lastMotionTime = 0;
 
-void setup(){
+void setup() {
   Serial.begin(9600);
   pinMode(pirPin, INPUT);
   pinMode(ledPin, OUTPUT);
-  digitalWrite(pirPin, LOW);
+  digitalWrite(pirPin, LOW); // Ensure PIR pin starts LOW
 
-  // Give the sensor some time to calibrate
-  delay(calibrationTime * 1000); // Calibrate sensor for the specified time
-  Serial.println("SENSOR_ACTIVE");
+  // Wait for the PIR sensor to calibrate
+  delay(calibrationTime * 1000);
+  Serial.println("SENSOR_ACTIVE"); // Log that sensor is now active
   delay(50);
 }
 
-void loop(){
-  if(digitalRead(pirPin) == HIGH){
+void loop() {
+  // Motion detected
+  if (digitalRead(pirPin) == HIGH) {
     unsigned long currentTime = millis();
+
+    // Only trigger motion response if cooldown has passed
     if (currentTime - lastMotionTime >= cooldownPeriod) {
-      if(lockLow){  
-        lockLow = false;            
-        lastMotionTime = currentTime; 
-        Serial.println("START_VIDEO"); // Signal to start video capture
-        digitalWrite(ledPin, HIGH);    // Turn on the LED
+      if (lockLow) {
+        lockLow = false;
+        lastMotionTime = currentTime;
+
+        // Notify to start recording (handled by a separate system)
+        Serial.println("START_VIDEO");
+
+        // Visual feedback (e.g., turn on LED)
+        digitalWrite(ledPin, HIGH);
         delay(50);
-      }         
+      }
       takeLowTime = true;
     }
   }
 
-  if(digitalRead(pirPin) == LOW){       
-    if(takeLowTime){
-      lowIn = millis();          
-      takeLowTime = false;       
+  // No motion detected
+  if (digitalRead(pirPin) == LOW) {
+    if (takeLowTime) {
+      // Note the time when PIR went LOW
+      lowIn = millis();
+      takeLowTime = false;
     }
-    
-    if(!lockLow && millis() - lowIn > pause){  
-      lockLow = true;                        
-      digitalWrite(ledPin, LOW);    // Turn off the LED
+
+    // If motion has stopped for long enough, reset lock
+    if (!lockLow && millis() - lowIn > pause) {
+      lockLow = true;
+
+      // Turn off LED (indicating no motion)
+      digitalWrite(ledPin, LOW);
       delay(50);
     }
   }
