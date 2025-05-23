@@ -1,3 +1,12 @@
+"""
+security.py
+
+Monitors serial output from Arduino and records a video clip when motion is detected.
+The recorded video is then emailed to a recipient as an attachment.
+
+Author: Bharath Gowda
+"""
+
 import cv2
 import serial
 import time
@@ -9,27 +18,28 @@ from email.mime.text import MIMEText
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env file
+# Load credentials from .env file
 load_dotenv()
 
-# Configure serial port
-ser = serial.Serial('/dev/cu.usbmodem1301', 9600)  # Update this with the correct port
+# === Serial Communication ===
+# Connect to Arduino via serial port (update COM port as needed)
+ser = serial.Serial('/dev/cu.usbmodem1301', 9600)
 
-# Email configuration
+# === Email Configuration ===
 email_user = os.getenv('EMAIL_USER')
 email_password = os.getenv('EMAIL_PASSWORD')
 
-# Example recipient's phone number and carrier gateway (Google Fi via T-Mobile MMS in this case)
+# Recipient's phone via SMS Gateway (Google Fi in this example)
 recipient_phone_number = '6232876182'
-carrier_gateway = 'tmomail.net'
+carrier_gateway = 'tmomail.net'  # For Gmail-to-SMS gateway (T-Mobile)
 email_send = f'{recipient_phone_number}@{carrier_gateway}'
-
 subject = 'Motion Detected - Video Attachment'
 
-# Cooldown period (in seconds)
-cooldown_period = 10 * 60  # 10 minutes
+# === Motion Cooldown ===
+cooldown_period = 10 * 60  # 10 minutes (to prevent spam)
 
 def send_email(filename):
+    """Sends an email with the given video file attached."""
     msg = MIMEMultipart()
     msg['From'] = email_user
     msg['To'] = email_send
@@ -38,19 +48,22 @@ def send_email(filename):
     body = 'Motion detected in your room. Please find the attached video.'
     msg.attach(MIMEText(body, 'plain'))
 
+    # Attach the video file
     with open(filename, 'rb') as attachment:
         part = MIMEBase('application', 'octet-stream')
         part.set_payload(attachment.read())
         encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f"attachment; filename= {filename}")
+        part.add_header('Content-Disposition', f'attachment; filename={filename}')
         msg.attach(part)
 
+    # Send email using Gmail SMTP
     with smtplib.SMTP('smtp.gmail.com', 587) as server:
         server.starttls()
         server.login(email_user, email_password)
         server.sendmail(email_user, email_send, msg.as_string())
 
 def capture_video(filename, duration=10):
+    """Captures a video from the webcam for the specified duration (in seconds)."""
     cap = cv2.VideoCapture(0)
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out = cv2.VideoWriter(filename, fourcc, 20.0, (640, 480))
@@ -67,16 +80,17 @@ def capture_video(filename, duration=10):
     out.release()
 
 def main():
+    """Main loop to monitor serial input and trigger video capture and email."""
     while True:
         if ser.in_waiting > 0:
-            line = ser.readline().decode('utf-8').rstrip()
+            line = ser.readline().decode('utf-8').strip()
             if "motion detected" in line:
                 print("Motion detected! Capturing video...")
                 video_filename = 'motion_video.avi'
                 capture_video(video_filename)
                 print("Video captured. Sending email...")
                 send_email(video_filename)
-                print("Email sent! Entering cooldown period.")
+                print("Email sent! Entering cooldown period...")
                 time.sleep(cooldown_period)
                 print("Cooldown period ended. Resuming motion detection.")
 
