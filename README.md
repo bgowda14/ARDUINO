@@ -80,28 +80,7 @@ ARDUINO/
 🤝 Contributing
 Contributions are welcome! Please fork the repository and submit a pull request with your enhancements.
 
-📄 License
-This project is licensed under the MIT License. See the LICENSE file for details.
-
 📬 Contact
 For questions or suggestions, feel free to open an issue or contact me at bgowda1412@gmail.com.
-
-yaml
-Copy
-Edit
-
----
-
-## 🧹 Additional Recommendations
-
-- **Repository Structure**: Organize your files into directories based on functionality (e.g., `Hand_Recognition`, `Motion_Detection`, `Security`). This improves readability and maintainability.
-
-- **Code Documentation**: Add comments to your code to explain the purpose of functions and complex logic. This aids others (and future you) in understanding the codebase.
-
-- **License**: Include a `LICENSE` file to specify the terms under which others can use or modify your project.
-
-- **Issues and Pull Requests**: Utilize GitHub's Issues and Pull Requests features to track bugs, enhancements, and contributions.
-
-- **Project Boards**: Consider using GitHub Projects to manage tasks and development progress.
 
  
